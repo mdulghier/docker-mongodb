@@ -1,10 +1,16 @@
 #!/bin/bash
 
-while getopts ":p:" opt; do
+while getopts ":p:r:" opt; do
 	case $opt in
 		p)
-			echo "password = $OPTARG"
 			PASSWORD=$OPTARG
+			;;
+		r)
+			REPLSET=$OPTARG
+			if [ ! -f /var/mongo-keyfile ]; then
+				echo "Mount mongo key file to /var/mongo-keyfile if you want to start a replica set"
+				exit 1
+			fi
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG"
@@ -23,6 +29,7 @@ function setup {
 	if [ ! $PASSWORD ]; then
 		PASSWORD=`cat /dev/urandom| tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1`
 	fi
+	echo "PASSWORD=$PASSWORD, REPLSET=$REPLSET"
 
 	/usr/bin/mongod -f /etc/mongod.conf &
 
@@ -30,7 +37,7 @@ function setup {
 	while [[ RET -ne 0 ]]; do
 		echo "=>    waiting for MongoDB..."
 		sleep 5
-		mongo admin --eval "help" > /dev/null 2>&1
+		mongo admin --eval "help" >  /dev/null 2>&1
 		RET=$?
 	done
 
@@ -53,9 +60,13 @@ if [ ! -f /.mongo-initialized ]; then
 fi
 
 echo "=> Starting MongoDB..."
-if [ ! -f /data/db/mongod.lock ]; then
-	exec /usr/bin/mongod -f /etc/mongod.conf
-else
+if [ -f /data/db/mongod.lock ]; then
 	rm /data/db/mongod.lock
+fi
+
+if [ $REPLSET ]; then
+	echo "=>   joining replica set $REPLSET"
+	exec /usr/bin/mongod -f /etc/mongod.conf --replSet "$REPLSET" --keyFile /var/mongo-keyfile 
+else
 	exec /usr/bin/mongod -f /etc/mongod.conf
 fi
