@@ -8,7 +8,12 @@ while getopts ":p:r:" opt; do
 		r)
 			REPLSET=$OPTARG
 			if [ ! -f /var/mongo-keyfile ]; then
-				echo "Mount mongo key file to /var/mongo-keyfile if you want to start a replica set"
+				echo "No key file found."
+				echo "Generate keyfile:"
+				echo "   openssl rand -base64 741 > mongodb-keyfile"
+				echo "   chmod 600 mongodb-keyfile"
+				echo "Mount keyfile:"
+				echo "   docker run ... -v ./mongodb-keyfile:/var/mongo-keyfile ..."
 				exit 1
 			fi
 			;;
@@ -65,7 +70,19 @@ if [ -f /data/db/mongod.lock ]; then
 fi
 
 if [ $REPLSET ]; then
-	echo "=>   joining replica set $REPLSET"
+	echo "=>Joining replica set $REPLSET..."
+	echo ""
+	echo "=>   if this is the first member of the replica set, initiate the replica set"
+	echo "=>      rs.initiate()"
+	echo "=>   after initializing the replica set, configure the host name the first member"
+	echo "=>      cfg = rs.conf()"
+	echo "=>      cfg.members[0].host = '<IP>:<Port>'     e.g.  cfg.members[0].host = '172.17.42.1:49150'"
+	echo "=>      rs.reconfig(cfg)"
+	echo ""
+	echo "=>   if this instance should be added to an existing replica set, call"
+	echo "=>      rs.add('<IP>:<Port>')"
+	echo "=>   on the RS master"
+	echo ""
 	exec /usr/bin/mongod -f /etc/mongod.conf --replSet "$REPLSET" --keyFile /var/mongo-keyfile 
 else
 	exec /usr/bin/mongod -f /etc/mongod.conf
