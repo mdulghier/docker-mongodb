@@ -39,7 +39,7 @@ done
 
 function setup {
 	echo "=> Setting up MongoDB..."
-	if [ ! $PASSWORD ]; then
+	if [ -z "$PASSWORD" ]; then
 		PASSWORD=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1`
 	fi
 
@@ -65,7 +65,7 @@ function setup {
 	echo "=>        dbAdminAnyDatabase"
 	echo "=>        clusterAdmin"
 
-	if [ -n $OPTION_CUSTOMPASSWORD ]; then
+	if [ -n "$OPTION_CUSTOMPASSWORD" ]; then
 		echo "=>   Connect with user '$ADMINUSER' and the password you passed as a parameter"
 	else
 		echo "=>    Connect with user '$ADMINUSER', password '$PASSWORD'"
